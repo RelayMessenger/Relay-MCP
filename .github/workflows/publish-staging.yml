@@ -58,6 +58,25 @@ jobs:
 
       - run: npm run validate
       - run: npm audit --audit-level=high
-      - run: npm publish --access public --tag staging --provenance
+      - name: Publish the installed-smoke tarball
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          TARBALL="$(find .release-tmp/mcp-pack-smoke -maxdepth 1 -name '*.tgz' -print -quit)"
+          test -n "$TARBALL"
+          test "$(tar -xOf "$TARBALL" package/package.json | node -e '
+            let body = "";
+            process.stdin.on("data", chunk => body += chunk);
+            process.stdin.on("end", () => {
+              const manifest = JSON.parse(body);
+              if (
+                manifest.bin?.["relay-mcp"]?.replace(/^\.\//, "")
+                  !== "dist/cli.js"
+              ) process.exit(1);
+              process.stdout.write(manifest.version);
+            });
+          ')" = "0.1.0-staging.1"
+          npm publish "$TARBALL" \
+            --access public \
+            --tag staging \
+            --provenance

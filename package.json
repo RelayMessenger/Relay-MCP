@@ -1,10 +1,10 @@
 {
   "name": "@relaymessenger/mcp",
-  "version": "0.1.0-staging.0",
+  "version": "0.1.0-staging.1",
   "description": "Local MCP v2 stdio server for current Relay messaging tools.",
   "type": "module",
   "bin": {
-    "relay-mcp": "./dist/cli.js"
+    "relay-mcp": "dist/cli.js"
   },
   "exports": {
     ".": {
