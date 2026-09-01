@@ -17,6 +17,9 @@ import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const sourceManifest = JSON.parse(
+  await readFile(join(root, "package.json"), "utf8"),
+);
 const release = resolve(root, ".release-tmp", "mcp-pack-smoke");
 await rm(release, { recursive: true, force: true });
 await mkdir(release, { recursive: true });
@@ -74,7 +77,10 @@ const bin = join(
   process.platform === "win32" ? "relay-mcp.cmd" : "relay-mcp",
 );
 if (process.platform !== "win32") await chmod(bin, 0o755);
-assert.match(run(bin, ["--version"], { cwd: consumer }).stdout, /^0\.1\.0\s*$/);
+assert.equal(
+  run(bin, ["--version"], { cwd: consumer }).stdout.trim(),
+  sourceManifest.version,
+);
 
 const home = await mkdtemp(join(tmpdir(), "relay-mcp-installed-home-"));
 const transport = new StdioClientTransport({

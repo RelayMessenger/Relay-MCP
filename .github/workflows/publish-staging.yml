@@ -1,0 +1,60 @@
+name: Publish staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Exact commit already present on staging
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    environment: staging
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.release_sha }}
+          fetch-depth: 0
+
+      - name: Prove exact staging commit
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          case "$RELEASE_SHA" in
+            (*[!0-9a-f]*|"") echo "release_sha must be lowercase hexadecimal" >&2; exit 1 ;;
+          esac
+          test "${#RELEASE_SHA}" -eq 40
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          git fetch origin staging
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/staging)"
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - run: npm ci
+
+      - name: Enforce staging package identity
+        run: |
+          node --input-type=module <<'NODE'
+          import manifest from "./package.json" with { type: "json" };
+          if (!/-staging\.\d+$/.test(manifest.version)) {
+            throw new Error(`not a staging version: ${manifest.version}`);
+          }
+          if (manifest.publishConfig?.tag !== "staging") {
+            throw new Error("publishConfig.tag must be staging");
+          }
+          NODE
+
+      - run: npm run validate
+      - run: npm audit --audit-level=high
+      - run: npm publish --access public --tag staging --provenance

@@ -35,7 +35,7 @@
     "inspector:test": "node scripts/inspector-smoke.mjs",
     "pack:smoke": "node scripts/tarball-smoke.mjs",
     "validate": "npm run clean && npm run check && npm run build && npm test && npm run contract:check && npm run boundaries:check && npm run protocol:test && npm run inspector:test && npm run pack:smoke",
-    "prepack": "npm run build"
+    "prepack": "npm run validate"
   },
   "engines": {
     "node": ">=22.22.3"
@@ -55,7 +55,9 @@
   },
   "publishConfig": {
     "access": "public",
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://registry.npmjs.org/",
+    "tag": "staging",
+    "provenance": true
   },
   "repository": {
     "type": "git",
