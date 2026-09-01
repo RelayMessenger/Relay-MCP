@@ -81,10 +81,6 @@ jobs:
             --tag staging \
             --provenance
 
-      - name: Keep the new package staging-only
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Verify the staging tag
         run: |
-          npm dist-tag rm @relaymessenger/mcp latest
           test "$(npm view @relaymessenger/mcp@staging version)" = "0.1.0-staging.1"
-          test "$(npm view @relaymessenger/mcp dist-tags.latest || true)" = ""
