@@ -76,11 +76,31 @@ jobs:
               process.stdout.write(manifest.version);
             });
           ')" = "0.1.0-staging.1"
-          npm publish "$TARBALL" \
-            --access public \
-            --tag staging \
-            --provenance
+          EXPECTED_INTEGRITY="sha512-$(node -e '
+            const { createHash } = require("node:crypto");
+            const { readFileSync } = require("node:fs");
+            process.stdout.write(
+              createHash("sha512").update(readFileSync(process.argv[1])).digest("base64")
+            );
+          ' "$TARBALL")"
+          if ACTUAL_INTEGRITY="$(
+            npm view @relaymessenger/mcp@0.1.0-staging.1 dist.integrity 2>/dev/null
+          )"; then
+            test "$ACTUAL_INTEGRITY" = "$EXPECTED_INTEGRITY"
+          else
+            npm publish "$TARBALL" \
+              --access public \
+              --tag staging \
+              --provenance
+          fi
 
       - name: Verify the staging tag
         run: |
-          test "$(npm view @relaymessenger/mcp@staging version)" = "0.1.0-staging.1"
+          for attempt in $(seq 1 12); do
+            if test "$(npm view @relaymessenger/mcp@staging version 2>/dev/null || true)" \
+              = "0.1.0-staging.1"; then
+              exit 0
+            fi
+            sleep 5
+          done
+          exit 1
